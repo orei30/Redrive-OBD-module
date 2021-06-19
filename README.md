@@ -1,4 +1,4 @@
-# Redrive-OBD-module
+# Redrive OBD module
 Stand-alone Arduino based OBD device, which communicates with a MQTT broker over 3G communication
 
 ## Listener client
