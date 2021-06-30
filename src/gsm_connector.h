@@ -15,6 +15,9 @@ const char *topicOfNewRecord = "redrive/records";
 const char *topicOfDriveStatus = "redrive/drives";
 uint32_t lastReconnectAttempt = 0;
 
+#define RESTART 1
+#define No_RESTART 0
+
 class GsmConnector
 {
 public:
@@ -25,14 +28,14 @@ public:
                      dateItemRequestTime(0)
     {
     }
-    void init()
+    PubSubClient* init()
     {
         SerialGSM.begin(9600);
+        return &mqtt;
     }
     void connect(int restart)
     {
         SerialMon.println("Wait...");
-        // delay(3000); // For some reason there is delay on the code here
         SerialMon.println("Initializing modem...");
         if (restart)
             modem.restart();
@@ -49,7 +52,6 @@ public:
         if (!modem.waitForNetwork())
         {
             SerialMon.println(" fail");
-            // delay(10000); // For some reason there is delay on the code here
             return;
         }
         SerialMon.println(" success");
@@ -57,13 +59,11 @@ public:
         {
             SerialMon.println("Network connected");
         }
-        // GPRS connection parameters are usually set after network registration
         SerialMon.print(F("Connecting to "));
         SerialMon.print(apn);
         if (!modem.gprsConnect(apn, gprsUser, gprsPass))
         {
             SerialMon.println(" fail");
-            // delay(10000); // For some reason there is delay on the code here
             return;
         }
         SerialMon.println(" success");

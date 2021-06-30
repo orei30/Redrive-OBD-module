@@ -17,7 +17,6 @@ public:
     void init()
     {
         SerialGPS.begin(9600);
-        SerialMon.println("gps initialized");
     }
     int process()
     {
@@ -25,18 +24,19 @@ public:
         // If it is time to query
         if (dateItemRequestTime == 0)
         {
-            SerialMon.println("start processing gps data.");
+            // initialize the start time for this query
+            dateItemRequestTime = millis();
+            // reset flags
             locationDefined = 0;
             dateDefined = 0;
             timeDefined = 0;
             satellitesDefined = 0;
-            dateItemRequestTime = millis();
         }
         // On timeout
         else if (dateItemRequestTime + DATE_QUERY_TIMEOUT <= millis())
         {
-            SerialMon.println("gps processing timedout.");
-            dateItemRequestTime = 0;
+
+            // if failed to get the data, set it to -1
             if (!locationDefined)
             {
                 record.setLatitude(-1);
@@ -56,35 +56,27 @@ public:
                 record.setSatellitesNum(-1);
             }
             result = 1;
+            dateItemRequestTime = 0;
         }
         // Reading data
         else
         {
             if (SerialGPS.available())
             {
-                SerialMon.println("gps serial available.");
-                // check procces time if it if and if it while.
+                // read data from gps serial
                 if (gps.encode(SerialGPS.read()))
                 {
-                    SerialMon.println("gps encoding succeed.");
                     if (gps.location.isValid())
                     {
-                        SerialMon.println("location is valid.");
+                        // if location is valid set to record
                         record.setLatitude(gps.location.lat());
                         record.setLongitude(gps.location.lng());
                         record.setAltitude(gps.altitude.meters());
                         locationDefined = 1;
-                        SerialMon.print("lat: ");
-                        SerialMon.print(gps.location.lat());
-                        SerialMon.print("lng: ");
-                        SerialMon.print(gps.location.lng());
-                        SerialMon.print("meters: ");
-                        SerialMon.print(gps.altitude.meters());
-                        SerialMon.println();
                     } // end if
                     if (gps.date.isValid())
                     {
-                        SerialMon.println("date is valid.");
+                        // if date is valid set to record
                         String str;
                         str = gps.date.day();
                         str += ("/");
@@ -93,13 +85,10 @@ public:
                         str += gps.date.year();
                         record.setDate(str);
                         dateDefined = 1;
-                        SerialMon.print("date: ");
-                        SerialMon.print(str);
-                        SerialMon.println();
                     } // end if
                     if (gps.time.isValid())
                     {
-                        SerialMon.println("time is valid.");
+                        // if time is valid set to record
                         String str;
                         str = gps.time.hour();
                         str += (":");
@@ -110,20 +99,15 @@ public:
                         str += gps.time.centisecond();
                         record.setTime(str);
                         timeDefined = 1;
-                        SerialMon.print("time: ");
-                        SerialMon.print(str);
-                        SerialMon.println();
                     } // end if
                     if (gps.satellites.isValid())
                     {
-                        SerialMon.println("satellites is valid.");
+                        // if satellites is valid set to record
                         record.setSatellitesNum(gps.satellites.value());
                         satellitesDefined = 1;
-                        SerialMon.print("satellites: ");
-                        SerialMon.print(gps.satellites.value());
-                        SerialMon.println();
                     } // end if
                     result = 1;
+                    dateItemRequestTime = 0;
                 } //end if
             }     // end if
             else {

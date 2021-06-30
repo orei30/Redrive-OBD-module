@@ -26,23 +26,45 @@ public:
     {
     }
 
+    void init()
+    {
+        mcp2515.reset();
+        mcp2515.setBitrate(CAN_500KBPS, MCP_8MHZ); // tals car
+        // mcp2515.setBitrate(CAN_1000KBPS);          // omris car
+        mcp2515.setNormalMode();
+        msgToSend.can_id = 0x7DF;
+        msgToSend.can_dlc = 8;
+        msgToSend.data[0] = 0x02;
+        msgToSend.data[1] = 0x01;
+        msgToSend.data[3] = 0x00;
+        msgToSend.data[4] = 0x00;
+        msgToSend.data[5] = 0x00;
+        msgToSend.data[6] = 0x00;
+        msgToSend.data[7] = 0x00;
+    }
+
     int process()
     {
         int result = 0;
-        // If it is time to query
+        // if it is time to query
         if (dateItemRequestTime == 0)
         {
+            // send message to can bus
             setMessageAndSend(dataItems[dataItemIndex]);
+            // initialize the start time for this query
             dateItemRequestTime = millis();
+            // reset flags
             speedDefined = 0;
             rpmDefined = 0;
             throttleDefined = 0;
             engineLoadDefined = 0;
             mafDefined = 0;
         }
-        // On timeout
+        // on timeout
         else if (dateItemRequestTime + DATE_QUERY_TIMEOUT <= millis())
         {
+            // check the current data item
+            // if failed to get the data, set it to -1
             switch (dataItems[dataItemIndex])
             {
             case VEHICLE_SPEED:
@@ -70,13 +92,15 @@ public:
                 SerialMon.println("something went wromg with can reader switch");
                 break;
             } // end switch
-            dataItemIndex = 0;
+            // reset request time for the next query
             dateItemRequestTime = 0;
-            result = 1;
         }
         // Reading data
         else
         {
+            // if data arrived from can bus
+            // check if it is the data we ask for
+            // if it is set to record
             if (mcp2515.readMessage(&returnedMsg) == MCP2515::ERROR_OK && returnedMsg.data[2] == dataItems[dataItemIndex])
             {
                 switch (dataItems[dataItemIndex])
@@ -109,7 +133,7 @@ public:
                 dataItemIndex = (dataItemIndex + 1) % (sizeof(dataItems) / sizeof(int));
                 dateItemRequestTime = 0;
             } // end if
-        }     // end if
+        } // end if
         return result;
     }
 
@@ -126,6 +150,9 @@ private:
     int dataItemIndex;
     unsigned long dateItemRequestTime;
 
+    /**
+     * send message to can bus to get the relevant data
+    */
     void setMessageAndSend(unsigned char pid)
     {
         msgToSend.data[2] = pid;
